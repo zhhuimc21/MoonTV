@@ -847,12 +847,6 @@ function main(config) {
 
   // ================================================================
   // 16. Preserve airport basic groups
-  //
-  // IMPORTANT:
-  //
-  // v1.5.1 fixed the problem where "九云" disappeared.
-  //
-  // Never force hidden=true.
   // ================================================================
 
   var preservedGroups = [];
@@ -893,8 +887,6 @@ function main(config) {
     var copied =
       JSON.parse(JSON.stringify(group));
 
-
-    // Keep airport group visible.
 
     delete copied["hidden"];
 
@@ -962,24 +954,6 @@ function main(config) {
 
   // ================================================================
   // 18. Find airport default manual selector
-  //
-  // Purpose:
-  //
-  //   Network Test
-  //       ↓
-  //   Airport Default Selector
-  //       ↓
-  //   User-selected node
-  //
-  // Example:
-  //
-  //   网络检测
-  //       ↓
-  //      九云
-  //       ↓
-  //      台湾节点
-  //
-  // Do NOT hardcode "九云".
   // ================================================================
 
   function findDefaultAirportGroup() {
@@ -1000,16 +974,12 @@ function main(config) {
         String(group.name);
 
 
-      // Ignore groups managed by Perfect-Rules.
-
       if (managedGroups[name]) {
 
         return;
 
       }
 
-
-      // Ignore automatic groups.
 
       if (isAutoSelectGroup(name)) {
 
@@ -1018,16 +988,12 @@ function main(config) {
       }
 
 
-      // Ignore failover groups.
-
       if (isFailoverGroup(name)) {
 
         return;
 
       }
 
-
-      // Ignore obvious business groups.
 
       if (isBusinessGroupName(name)) {
 
@@ -1067,18 +1033,6 @@ function main(config) {
     });
 
 
-    // --------------------------------------------------------------
-    // Prefer an all-node manual selector.
-    //
-    // This matches common airport structures such as:
-    //
-    //   九云
-    //   节点
-    //   全部节点
-    //
-    // where the group directly contains many actual proxy nodes.
-    // --------------------------------------------------------------
-
     for (var i = 0; i < candidates.length; i++) {
 
       if (isAllNodesGroup(candidates[i].group)) {
@@ -1089,12 +1043,6 @@ function main(config) {
 
     }
 
-
-    // --------------------------------------------------------------
-    // Fallback:
-    //
-    // Use the first suitable manual select group.
-    // --------------------------------------------------------------
 
     if (candidates.length > 0) {
 
@@ -1147,11 +1095,6 @@ function main(config) {
 
   // ================================================================
   // 21. Remote Rule Providers
-  //
-  // GitHub repository:
-  //
-  // n0de-sudo/Perfect-Rules
-  //
   // ================================================================
 
   config["rule-providers"] = {
@@ -1365,7 +1308,7 @@ function main(config) {
 
     for (var region in regionPatterns) {
 
-      if (!regionPatterns.hasOwnProperty(region)) {
+      if (!Object.prototype.hasOwnProperty.call(regionPatterns, region)) {
 
         continue;
 
@@ -1610,22 +1553,26 @@ function main(config) {
 
 
   // ================================================================
-  // 28. Service groups (Modified to support manual node selection)
+  // 28. Service groups
   // ================================================================
 
   function createBusinessGroup(name) {
 
     var groupProxies = [];
 
-    // 优先加入机场自带的手动选择节点组（如：九云），支持直接选择具体节点
     if (defaultAirportGroup) {
+
       groupProxies.push(defaultAirportGroup);
+
     }
 
-    // 拼接各个国家筛选组及国内直连
+
     groupProxies = groupProxies.concat(availableRegions).concat([
+
       "国内直连"
+
     ]);
+
 
     var group = {
 
@@ -1683,29 +1630,6 @@ function main(config) {
 
   // ================================================================
   // 29. Network Test
-  //
-  // IMPORTANT:
-  //
-  // Network Test follows the airport's default manual selector.
-  //
-  // Example:
-  //
-  //   九云
-  //      ↓
-  //   台湾节点
-  //
-  // Network Test:
-  //
-  //   网络检测
-  //      ↓
-  //     九云
-  //      ↓
-  //   台湾节点
-  //
-  // Therefore the network diagnostic websites will test the same
-  // outbound proxy selected by the user in the airport's default
-  // manual selector.
-  //
   // ================================================================
 
   var networkTestGroup = {
@@ -1728,11 +1652,6 @@ function main(config) {
     ];
 
   } else {
-
-    // Fallback:
-    //
-    // If no suitable airport manual selector can be detected,
-    // follow the Perfect-Rules main selector instead.
 
     networkTestGroup["proxies"] = [
 
@@ -1757,19 +1676,6 @@ function main(config) {
 
   // ================================================================
   // 30. Final proxy-group list
-  //
-  // IMPORTANT:
-  //
-  // Airport groups are preserved.
-  //
-  // Example:
-  //
-  //   九云
-  //
-  // remains visible.
-  //
-  // Network Test follows the airport default selector.
-  //
   // ================================================================
 
   config["proxy-groups"] =
@@ -1797,35 +1703,9 @@ function main(config) {
 
   // ================================================================
   // 31. Routing rules
-  //
-  // IMPORTANT:
-  //
-  // Rule Providers are deliberately ordered:
-  //
-  // NetworkTest
-  // AI
-  // YouTube
-  // Google
-  // GitHub
-  // Netflix
-  // Spotify
-  // Steam
-  // Telegram
-  // TikTok
-  // Apple
-  // Microsoft
-  // CN / Private
-  // MATCH
-  //
-  // YouTube MUST be before Google.
-  //
   // ================================================================
 
   config["rules"] = [
-
-    // --------------------------------------------------------------
-    // Private / LAN
-    // --------------------------------------------------------------
 
     "DOMAIN-SUFFIX,lan,DIRECT",
 
@@ -1841,114 +1721,37 @@ function main(config) {
 
     "IP-CIDR,192.168.0.0/16,DIRECT,no-resolve",
 
-
-    // --------------------------------------------------------------
-    // Network Test
-    // --------------------------------------------------------------
-
     "RULE-SET,NetworkTest,网络检测",
-
-
-    // --------------------------------------------------------------
-    // AI
-    // --------------------------------------------------------------
 
     "RULE-SET,AI,AI",
 
-
-    // --------------------------------------------------------------
-    // YouTube
-    //
-    // MUST be before Google.
-    // --------------------------------------------------------------
-
     "RULE-SET,YouTube,YouTube",
-
-
-    // --------------------------------------------------------------
-    // Google
-    // --------------------------------------------------------------
 
     "RULE-SET,Google,Google",
 
-
-    // --------------------------------------------------------------
-    // GitHub
-    // --------------------------------------------------------------
-
     "RULE-SET,GitHub,GitHub",
-
-
-    // --------------------------------------------------------------
-    // Netflix
-    // --------------------------------------------------------------
 
     "RULE-SET,Netflix,Netflix",
 
-
-    // --------------------------------------------------------------
-    // Spotify
-    // --------------------------------------------------------------
-
     "RULE-SET,Spotify,Spotify",
-
-
-    // --------------------------------------------------------------
-    // Steam
-    // --------------------------------------------------------------
 
     "RULE-SET,Steam,Steam",
 
-
-    // --------------------------------------------------------------
-    // Telegram
-    // --------------------------------------------------------------
-
     "RULE-SET,Telegram,Telegram",
-
-
-    // --------------------------------------------------------------
-    // TikTok
-    // --------------------------------------------------------------
 
     "RULE-SET,TikTok,TikTok",
 
-
-    // --------------------------------------------------------------
-    // Apple
-    // --------------------------------------------------------------
-
     "RULE-SET,Apple,Apple",
 
-
-    // --------------------------------------------------------------
-    // Microsoft
-    // --------------------------------------------------------------
-
     "RULE-SET,Microsoft,Microsoft",
-
-
-    // --------------------------------------------------------------
-    // Private
-    // --------------------------------------------------------------
 
     "GEOSITE,private,国内直连",
 
     "GEOIP,private,国内直连,no-resolve",
 
-
-    // --------------------------------------------------------------
-    // China
-    // --------------------------------------------------------------
-
     "GEOSITE,cn,国内直连",
 
     "GEOIP,cn,国内直连,no-resolve",
-
-
-    // --------------------------------------------------------------
-    // Final
-    // --------------------------------------------------------------
 
     "MATCH,一键代理"
 
