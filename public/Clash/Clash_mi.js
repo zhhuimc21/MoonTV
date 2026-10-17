@@ -1,29 +1,7 @@
 function main(config) {
 
   // ================================================================
-  // Clash Mi / Mihomo Perfect-Rules v1.7
-  //
-  // Architecture:
-  //
-  //   Airport Subscription
-  //          ↓
-  //   Preserve Airport Basic Groups
-  //          ↓
-  //   Dynamic Region Groups
-  //          ↓
-  //   Perfect-Rules Service Groups
-  //          ↓
-  //   Remote Rule Providers
-  //
-  // JS:
-  //   Responsible for configuration architecture
-  //
-  // GitHub Rule Providers:
-  //   Responsible for actual routing rules
-  //
-  // Network Test:
-  //   Follow airport's default manual selector
-  //
+  // Clash Mi / Mihomo Custom Rules & Pure Nodes v1.7
   // ================================================================
 
 
@@ -324,7 +302,7 @@ function main(config) {
 
 
   // ================================================================
-  // 7. Original airport proxies
+  // 7. Extract pure proxies from subscription
   // ================================================================
 
   var originalProxies = Array.isArray(config["proxies"])
@@ -346,16 +324,7 @@ function main(config) {
 
 
   // ================================================================
-  // 8. Original airport proxy groups
-  // ================================================================
-
-  var originalGroups = Array.isArray(config["proxy-groups"])
-    ? config["proxy-groups"]
-    : [];
-
-
-  // ================================================================
-  // 9. Perfect-Rules icon CDN
+  // 8. Icons & CDN
   // ================================================================
 
   var iconBaseURL =
@@ -427,650 +396,12 @@ function main(config) {
 
 
   // ================================================================
-  // 10. Managed groups
-  // ================================================================
-
-  var managedGroups = {
-
-    "一键代理": true,
-
-    "国内直连": true,
-
-    "AI": true,
-
-    "YouTube": true,
-
-    "Google": true,
-
-    "GitHub": true,
-
-    "网络检测": true,
-
-    "Netflix": true,
-
-    "Spotify": true,
-
-    "Steam": true,
-
-    "Telegram": true,
-
-    "TikTok": true,
-
-    "Apple": true,
-
-    "Microsoft": true,
-
-    "香港": true,
-
-    "台湾": true,
-
-    "日本": true,
-
-    "新加坡": true,
-
-    "韩国": true,
-
-    "美国": true,
-
-    "加拿大": true,
-
-    "英国": true,
-
-    "其他地区": true
-
-  };
-
-
-  // ================================================================
-  // 11. Built-in targets
-  // ================================================================
-
-  var builtinTargets = {
-
-    "DIRECT": true,
-
-    "REJECT": true,
-
-    "REJECT-DROP": true,
-
-    "PASS": true,
-
-    "COMPATIBLE": true,
-
-    "GLOBAL": true
-
-  };
-
-
-  // ================================================================
-  // 12. Business group detection
-  // ================================================================
-
-  function isBusinessGroupName(name) {
-
-    if (!name) {
-
-      return false;
-
-    }
-
-    var text = String(name);
-
-
-    var patterns = [
-
-      /ai/i,
-
-      /openai/i,
-
-      /chatgpt/i,
-
-      /claude/i,
-
-      /gemini/i,
-
-      /netflix/i,
-
-      /disney/i,
-
-      /disney\+/i,
-
-      /youtube/i,
-
-      /google/i,
-
-      /github/i,
-
-      /spotify/i,
-
-      /steam/i,
-
-      /tiktok/i,
-
-      /telegram/i,
-
-      /twitter/i,
-
-      /x\.com/i,
-
-      /facebook/i,
-
-      /instagram/i,
-
-      /流媒体/i,
-
-      /媒体/i,
-
-      /影音/i,
-
-      /视频/i,
-
-      /游戏/i,
-
-      /游戏专用/i,
-
-      /机场专用/i,
-
-      /节点分流/i
-
-    ];
-
-
-    for (var i = 0; i < patterns.length; i++) {
-
-      if (patterns[i].test(text)) {
-
-        return true;
-
-      }
-
-    }
-
-
-    return false;
-
-  }
-
-
-  // ================================================================
-  // 13. Auto-select detection
-  // ================================================================
-
-  function isAutoSelectGroup(name) {
-
-    if (!name) {
-
-      return false;
-
-    }
-
-
-    return (
-
-      /自动选择/i.test(name) ||
-
-      /auto[\s_-]*select/i.test(name) ||
-
-      /auto[\s_-]*test/i.test(name) ||
-
-      /测速/i.test(name)
-
-    );
-
-  }
-
-
-  // ================================================================
-  // 14. Failover detection
-  // ================================================================
-
-  function isFailoverGroup(name) {
-
-    if (!name) {
-
-      return false;
-
-    }
-
-
-    return (
-
-      /故障转移/i.test(name) ||
-
-      /failover/i.test(name) ||
-
-      /fallback/i.test(name)
-
-    );
-
-  }
-
-
-  // ================================================================
-  // 15. All-node detection
-  // ================================================================
-
-  function isAllNodeName(name) {
-
-    if (!name) {
-
-      return false;
-
-    }
-
-
-    return (
-
-      /全部节点/i.test(name) ||
-
-      /所有节点/i.test(name) ||
-
-      /全部/i.test(name) ||
-
-      /all[\s_-]*nodes?/i.test(name) ||
-
-      /all[\s_-]*proxies?/i.test(name)
-
-    );
-
-  }
-
-
-  function getProxyComposition(group) {
-
-    var result = {
-
-      total: 0,
-
-      actualNodes: 0,
-
-      groups: 0,
-
-      builtin: 0,
-
-      unknown: 0
-
-    };
-
-
-    if (
-
-      !group ||
-
-      !Array.isArray(group.proxies)
-
-    ) {
-
-      return result;
-
-    }
-
-
-    result.total =
-      group.proxies.length;
-
-
-    group.proxies.forEach(function(item) {
-
-      if (!item) {
-
-        return;
-
-      }
-
-
-      if (proxyNames.indexOf(item) !== -1) {
-
-        result.actualNodes++;
-
-        return;
-
-      }
-
-
-      if (builtinTargets[item]) {
-
-        result.builtin++;
-
-        return;
-
-      }
-
-
-      var referencedGroup =
-        originalGroups.some(function(g) {
-
-          return (
-
-            g &&
-
-            g.name === item
-
-          );
-
-        });
-
-
-      if (referencedGroup) {
-
-        result.groups++;
-
-        return;
-
-      }
-
-
-      result.unknown++;
-
-    });
-
-
-    return result;
-
-  }
-
-
-  function isAllNodesGroup(group) {
-
-    if (!group || !group.name) {
-
-      return false;
-
-    }
-
-
-    var name =
-      String(group.name);
-
-
-    if (isAllNodeName(name)) {
-
-      return true;
-
-    }
-
-
-    if (isBusinessGroupName(name)) {
-
-      return false;
-
-    }
-
-
-    var composition =
-      getProxyComposition(group);
-
-
-    if (composition.total === 0) {
-
-      return false;
-
-    }
-
-
-    if (composition.actualNodes < 2) {
-
-      return false;
-
-    }
-
-
-    var ratio =
-      composition.actualNodes /
-      composition.total;
-
-
-    if (ratio < 0.3) {
-
-      return false;
-
-    }
-
-
-    if (composition.groups > 0) {
-
-      if (composition.actualNodes >= 5) {
-
-        return true;
-
-      }
-
-      return false;
-
-    }
-
-
-    return true;
-
-  }
-
-
-  // ================================================================
-  // 16. Preserve airport basic groups
-  // ================================================================
-
-  var preservedGroups = [];
-
-
-  originalGroups.forEach(function(group) {
-
-    if (!group || !group.name) {
-
-      return;
-
-    }
-
-
-    if (managedGroups[group.name]) {
-
-      return;
-
-    }
-
-
-    var isBasic =
-
-      isAutoSelectGroup(group.name) ||
-
-      isFailoverGroup(group.name) ||
-
-      isAllNodesGroup(group);
-
-
-    if (!isBasic) {
-
-      return;
-
-    }
-
-
-    var copied =
-      JSON.parse(JSON.stringify(group));
-
-
-    delete copied["hidden"];
-
-
-    preservedGroups.push(copied);
-
-  });
-
-
-  // ================================================================
-  // 17. Convert airport Auto-Select groups to URL-Test
-  // ================================================================
-
-  preservedGroups.forEach(function(group) {
-
-    if (!group || !group.name) {
-
-      return;
-
-    }
-
-
-    if (!isAutoSelectGroup(group.name)) {
-
-      return;
-
-    }
-
-
-    group.type = "url-test";
-
-
-    group.proxies =
-      proxyNames.slice();
-
-
-    group.url =
-      "https://www.gstatic.com/generate_204";
-
-
-    group.interval = 300;
-
-
-    group.timeout = 5000;
-
-
-    group.tolerance = 50;
-
-
-    group.lazy = true;
-
-
-    group["max-failed-times"] = 3;
-
-
-    group["expected-status"] = 204;
-
-
-    delete group["disable-udp"];
-
-    delete group["strategy"];
-
-  });
-
-
-  // ================================================================
-  // 18. Find airport default manual selector
-  // ================================================================
-
-  function findDefaultAirportGroup() {
-
-    var candidates = [];
-
-
-    originalGroups.forEach(function(group) {
-
-      if (!group || !group.name) {
-
-        return;
-
-      }
-
-
-      var name =
-        String(group.name);
-
-
-      if (managedGroups[name]) {
-
-        return;
-
-      }
-
-
-      if (isAutoSelectGroup(name)) {
-
-        return;
-
-      }
-
-
-      if (isFailoverGroup(name)) {
-
-        return;
-
-      }
-
-
-      if (isBusinessGroupName(name)) {
-
-        return;
-
-      }
-
-
-      if (group.type !== "select") {
-
-        return;
-
-      }
-
-
-      var composition =
-        getProxyComposition(group);
-
-
-      if (composition.actualNodes < 2) {
-
-        return;
-
-      }
-
-
-      candidates.push({
-
-        group: group,
-
-        score: 0,
-
-        index: candidates.length
-
-      });
-
-    });
-
-
-    for (var i = 0; i < candidates.length; i++) {
-
-      if (isAllNodesGroup(candidates[i].group)) {
-
-        return candidates[i].group.name;
-
-      }
-
-    }
-
-
-    if (candidates.length > 0) {
-
-      return candidates[0].group.name;
-
-    }
-
-
-    return null;
-
-  }
-
-
-  var defaultAirportGroup =
-    findDefaultAirportGroup();
-
-
-  // ================================================================
-  // 19. Remote Rule Provider base URL
+  // 9. Rule Providers
   // ================================================================
 
   var ruleBaseURL =
     "https://cdn.jsdelivr.net/gh/n0de-sudo/Perfect-Rules@main/Clash/rules/";
 
-
-  // ================================================================
-  // 20. Rule Provider factory
-  // ================================================================
 
   function createRuleProvider(filename) {
 
@@ -1092,10 +423,6 @@ function main(config) {
 
   }
 
-
-  // ================================================================
-  // 21. Remote Rule Providers
-  // ================================================================
 
   config["rule-providers"] = {
 
@@ -1139,7 +466,7 @@ function main(config) {
 
 
   // ================================================================
-  // 22. Region detection
+  // 10. Region detection
   // ================================================================
 
   var regionPatterns = {
@@ -1157,7 +484,6 @@ function main(config) {
       /HongKong/i
 
     ],
-
 
     "台湾": [
 
@@ -1178,7 +504,6 @@ function main(config) {
       /Taipei/i
 
     ],
-
 
     "日本": [
 
@@ -1204,7 +529,6 @@ function main(config) {
 
     ],
 
-
     "新加坡": [
 
       /新加坡/i,
@@ -1218,7 +542,6 @@ function main(config) {
       /Singapore/i
 
     ],
-
 
     "韩国": [
 
@@ -1239,7 +562,6 @@ function main(config) {
       /Seoul/i
 
     ],
-
 
     "美国": [
 
@@ -1269,7 +591,6 @@ function main(config) {
 
     ],
 
-
     "加拿大": [
 
       /加拿大/i,
@@ -1283,7 +604,6 @@ function main(config) {
       /Montreal/i
 
     ],
-
 
     "英国": [
 
@@ -1314,10 +634,8 @@ function main(config) {
 
       }
 
-
       var patterns =
         regionPatterns[region];
-
 
       for (var i = 0; i < patterns.length; i++) {
 
@@ -1331,15 +649,10 @@ function main(config) {
 
     }
 
-
     return "其他地区";
 
   }
 
-
-  // ================================================================
-  // 23. Build region node lists
-  // ================================================================
 
   var regionNodes = {
 
@@ -1372,23 +685,13 @@ function main(config) {
 
     }
 
-
     var region =
       detectRegion(String(proxy.name));
 
-
-    regionNodes[region].push(
-
-      proxy.name
-
-    );
+    regionNodes[region].push(proxy.name);
 
   });
 
-
-  // ================================================================
-  // 24. Region order
-  // ================================================================
 
   var regionOrder = [
 
@@ -1413,31 +716,18 @@ function main(config) {
   ];
 
 
-  // ================================================================
-  // 25. Create region URL-Test groups
-  // ================================================================
-
+  // 自动生成各个国家的延迟测速组 (URL-Test)
   var regionGroups = [];
-
 
   regionOrder.forEach(function(region) {
 
-    var nodes =
-      regionNodes[region];
+    var nodes = regionNodes[region];
 
-
-    if (
-
-      !nodes ||
-
-      nodes.length === 0
-
-    ) {
+    if (!nodes || nodes.length === 0) {
 
       return;
 
     }
-
 
     var group = {
 
@@ -1447,8 +737,7 @@ function main(config) {
 
       "proxies": nodes,
 
-      "url":
-        "https://www.gstatic.com/generate_204",
+      "url": "https://www.gstatic.com/generate_204",
 
       "interval": 300,
 
@@ -1464,17 +753,13 @@ function main(config) {
 
     };
 
-
-    var icon =
-      getGroupIcon(region);
-
+    var icon = getGroupIcon(region);
 
     if (icon) {
 
       group["icon"] = icon;
 
     }
-
 
     regionGroups.push(group);
 
@@ -1490,7 +775,7 @@ function main(config) {
 
 
   // ================================================================
-  // 26. Domestic Direct
+  // 11. Custom Proxy Groups & Business Selectors
   // ================================================================
 
   var domesticDirectGroup = {
@@ -1507,72 +792,41 @@ function main(config) {
 
   };
 
-
-  var domesticIcon =
-    getGroupIcon("国内直连");
-
+  var domesticIcon = getGroupIcon("国内直连");
 
   if (domesticIcon) {
 
-    domesticDirectGroup["icon"] =
-      domesticIcon;
+    domesticDirectGroup["icon"] = domesticIcon;
 
   }
 
 
-  // ================================================================
-  // 27. One-click Proxy
-  // ================================================================
-
+  // 一键代理：包含所有具体节点 + 各国家筛选组 + 直连
   var mainSelector = {
 
     "name": "一键代理",
 
     "type": "select",
 
-    "proxies":
-      availableRegions.concat([
+    "proxies": proxyNames.concat(availableRegions).concat([
 
-        "国内直连"
+      "国内直连"
 
-      ])
+    ])
 
   };
 
-
-  var mainIcon =
-    getGroupIcon("一键代理");
-
+  var mainIcon = getGroupIcon("一键代理");
 
   if (mainIcon) {
 
-    mainSelector["icon"] =
-      mainIcon;
+    mainSelector["icon"] = mainIcon;
 
   }
 
 
-  // ================================================================
-  // 28. Service groups
-  // ================================================================
-
+  // 核心业务策略组工厂：最上方直接加入所有具体节点，其次是各国家筛选组
   function createBusinessGroup(name) {
-
-    var groupProxies = [];
-
-    if (defaultAirportGroup) {
-
-      groupProxies.push(defaultAirportGroup);
-
-    }
-
-
-    groupProxies = groupProxies.concat(availableRegions).concat([
-
-      "国内直连"
-
-    ]);
-
 
     var group = {
 
@@ -1580,21 +834,21 @@ function main(config) {
 
       "type": "select",
 
-      "proxies": groupProxies
+      "proxies": proxyNames.concat(availableRegions).concat([
+
+        "国内直连"
+
+      ])
 
     };
 
-
-    var icon =
-      getGroupIcon(name);
-
+    var icon = getGroupIcon(name);
 
     if (icon) {
 
       group["icon"] = icon;
 
     }
-
 
     return group;
 
@@ -1628,61 +882,33 @@ function main(config) {
   ];
 
 
-  // ================================================================
-  // 29. Network Test
-  // ================================================================
-
+  // 网络检测组
   var networkTestGroup = {
 
     "name": "网络检测",
 
     "type": "select",
 
-    "proxies": []
+    "proxies": proxyNames.length > 0 ? proxyNames : ["一键代理"]
 
   };
 
-
-  if (defaultAirportGroup) {
-
-    networkTestGroup["proxies"] = [
-
-      defaultAirportGroup
-
-    ];
-
-  } else {
-
-    networkTestGroup["proxies"] = [
-
-      "一键代理"
-
-    ];
-
-  }
-
-
-  var networkTestIcon =
-    getGroupIcon("网络检测");
-
+  var networkTestIcon = getGroupIcon("网络检测");
 
   if (networkTestIcon) {
 
-    networkTestGroup["icon"] =
-      networkTestIcon;
+    networkTestGroup["icon"] = networkTestIcon;
 
   }
 
 
   // ================================================================
-  // 30. Final proxy-group list
+  // 12. Assemble final proxy-groups (完全丢弃机场原分组)
   // ================================================================
 
   config["proxy-groups"] =
 
-    preservedGroups
-
-      .concat(businessGroups)
+    businessGroups
 
       .concat([
 
@@ -1702,7 +928,7 @@ function main(config) {
 
 
   // ================================================================
-  // 31. Routing rules
+  // 13. Routing rules
   // ================================================================
 
   config["rules"] = [
@@ -1757,10 +983,6 @@ function main(config) {
 
   ];
 
-
-  // ================================================================
-  // 32. Return generated config
-  // ================================================================
 
   return config;
 
